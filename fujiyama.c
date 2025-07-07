@@ -1838,14 +1838,12 @@ vec vinv(vec a, vec n)
   return u;
 }
 
-
 int main()
 {
     int i, u = 0;
     unsigned short s[K + 1] = {0}, z1[N] = {0};
     vec v = {0}, x = mkpol2(15),r1=mkpol2(12),r2=mkpol2(12),m={1,2,3,4,5,6,7,8},I={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
     OP f = {0},y={0};
-
     printf("%d %d %d\n", 3, oinv(3, N), 3 * oinv(3, N) % N);
     int le = 1;
     for (i = 1; i < 65; i++)
@@ -1854,11 +1852,12 @@ int main()
             le = (13 * le) % 128;
         printf("le=%d %d\n", le, i);
     }
-    v=vmod(vadd(vmul_2(x,r1),m),x);
+    //v=vmod(vadd(vmul_2(x,r1),m),x);
+    v=vmod(vmul(vinv(m,I),m),I);
     //v=vmod(c, (x));
     printpol(v);
     printf("\n");
-    //exit(1);
+    exit(1);
     srand(clock());
     // mkg(K); // Goppa Code (EEA type)
     // van(K); // RS-Code generate
