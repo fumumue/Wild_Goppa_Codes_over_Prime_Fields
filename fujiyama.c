@@ -1801,10 +1801,15 @@ int main()
     //v=vmod(vadd(vmul_2(x,r1),m),x);
     v=vmod(vmul(vinv(m,I),m),I);
     //v=vmod(c, (x));
-    v=vinv(x,r1);
+    vec moduls={0};
+    moduls.x[761]=1;
+    moduls.x[1]=4590;
+    moduls.x[0]=4590;
+    
+    v=vinv(x,moduls);
     printpol(v);
     printf("\n");
-    v=vmod(vmul(v,x),r1);
+    v=vmod(vmul(v,x),moduls);
     printpol(v);
     printf("\n");
     exit(1);
