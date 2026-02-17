@@ -1744,99 +1744,42 @@ vec vdiv(vec f, vec g)
 // invert of polynomial
 vec vinv(vec a, vec n)
 {
-  vec d = {0}, x = {0}, s = {0}, q = {0}, r = {0}, t = {0}, u = {0}, v = {0}, w = {0}, tt = {0}, gcd = {0}, tmp = {0};
-  oterm b = {0};
-  vec vv = {0}, xx = {0},aa={0},bb={0},cc={0};
+    vec d = n;
+    vec x = {0};
+    vec s = {0};
+    vec t={0};
+    vec r={0};
+    vec tt=n;
+    vec df={0};
 
-  if (deg((a)) > deg((n)))
-  {
-    tmp = a;
-    a = n;
-    n = tmp;
-    printf("baka_i\n");
-    //exit (1);
-  }
-  if (vLT(a).a == 0)
-  {
-    printf(" a ga 0\n");
-    exit(1);
-  }
+    df.x[0]= -1;
 
-  tt = n;
+    s.x[0]=1;
 
-  d = n;
-  x.x[0] = 0;
-  s.x[0] = 1;
-  while (deg((a)) > 0)
-  {
-    if (deg((a)) > 0)
-      r = vmod(d, a);
-    if (vLT(a).a == 0)
-      break;
-    if (vLT(a).a > 0)
-      q = vdiv(d, a);
-
+    while (deg(a)>0)
+    {
+        //divmod_result w=vdivmod(d,a);
+        vec q = vdiv(d , a);
+        r = vmod(d , a);
+        d = a;
+        a = r;
+        t = vsub(x, vmul(q, s));
+        x = s;
+        s = t;
+        printf("!\n");
+    }
     d = a;
     a = r;
-    t = vsub(x, vmul_2(q, s));
-
     x = s;
     s = t;
-  }
-  d = a;
-  a = r;
-
-  x = s;
-  s = t;
-
-  gcd = d; // $\gcd(a, n)$
-  printpol((gcd));
-  printf(" =========gcd\n");
-
-  printf("before vinv\n");
-  //w=tt;
-
-  b = vLT(w);
-
-  aa=(x);
-  bb=(n);
-  cc = vadd(aa, bb);
-  v=(cc);
-  w = tt;
-  if (vLT(v).n > 0 && vLT(w).n > 0)
-  {
-    u = vmod(v, w);
-  }
-  else
-  {
-    //printpol (o2v (v));
-    printf(" v===========\n");
-    //printpol (o2v (x));
-    printf(" x==0?\n");
-    //printpol (o2v (n));
-    printf(" n==0?\n");
-
-    exit(1);
-  }
-  //caution !!
-  if (vLT(u).a > 0 && vLT(d).a > 0)
-  {
-    u = vdiv(u, d);
-  }
-
-  if (vLT(u).a == 0 || vLT(d).a == 0)
-  {
-    printf("inv div u or d==0\n");
-    // exit(1);
-  }
-  if (vLT(u).a == 0)
-  {
-    printf("no return at u==0\n");
-    exit(1);
-  }
-
-  return u;
+    printf("#\n");
+    vec gcd = d; // $\gcd(a, n)$
+    vec u= vmod(vadd(x , n),tt);
+    u=vdiv(u, d);
+ 
+    return  u;
 }
+
 
 int main()
 {
@@ -1858,9 +1801,14 @@ int main()
     //v=vmod(vadd(vmul_2(x,r1),m),x);
     v=vmod(vmul(vinv(m,I),m),I);
     //v=vmod(c, (x));
+    v=vinv(x,r1);
     printpol(v);
     printf("\n");
-    //exit(1);
+    v=vmod(vmul(v,x),r1);
+    printpol(v);
+    printf("\n");
+    exit(1);
+    
     // mkg(K); // Goppa Code (EEA type)
     // van(K); // RS-Code generate
     // mkd(f, K);
