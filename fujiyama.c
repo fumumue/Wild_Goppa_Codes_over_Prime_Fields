@@ -464,18 +464,50 @@ short inv(short a, short n)
     return ((x + n) % (n / d));
 }
 
-// aに何をかけたらbになるか
-unsigned short
-equ(unsigned short a, unsigned short b)
+
+ long long 
+equ( long long  a, long long  b)
 {
-    // for(short i=0;i<N;i++)
+    // for(unsigned long long  i=0;i<N;i++)
     if (b == 0)
         return 0;
     if (a == 1)
         return b;
+    if(a==b)
+    return 1;
 
-    return (inv(a, N) * b) % N;
+    long long a_inv=inv(a,N);
+    if(a_inv<0) return -1; //{ printf("no inv\n"); exit(1); }
+
+    return (a_inv * b) % N;
 }
+
+
+oterm vLTdiv_safe(vec f, oterm t)
+{
+    oterm tt = vLT(f);
+    oterm s = {0};
+
+    if(tt.n < t.n) {
+        s.n = 0;
+        s.a = 0;
+    } else {
+        s.n = tt.n - t.n;
+        long long c = equ(t.a, tt.a);
+        if(c < 0) {
+            long long k = inv(t.a, N);
+            if(k < 0) {
+                s.a = -1;  // 逆元なし
+                return s;
+            }
+            c = (tt.a * k) % N;
+        }
+        s.a = c;
+    }
+
+    return s;
+}
+
 
 // 多項式を単行式で割る
 oterm vLTdiv(vec f, oterm t)
@@ -575,7 +607,7 @@ vec vmod(vec f, vec g)
     while (1)
     {
         // printf("@\n");
-        c = vLTdiv(f, b);
+        c = vLTdiv_safe(f, b);
         h = vterml(g, c);
         f = vsub(f, h);
         // printsage(g);
@@ -1679,6 +1711,94 @@ vec coeff(vec f, unsigned short d)
 }
 
 
+
+vec vdiv_safe(vec f, vec g)
+{
+    int i;
+    vec tt = {0};  // 商
+    vec h;
+    oterm b, c;
+    
+    // tt の初期化
+    for (i = 0; i < DEG; i++) tt.x[i] = 0;
+
+    // g が 0 の場合はエラー
+    if (vLT(g).a == 0) {
+        printf("Error: division by zero g\n");
+        exit(1);
+    }
+
+    // f の次数 < g の場合は商は 0
+    if (deg(f) < deg(g)) {
+        return tt;
+    }
+
+    b = vLT(g);  // g の先頭項
+
+    // g が定数 1 の場合は f がそのまま商
+    if (b.a == 1 && b.n == 0) {
+        return f;
+    }
+
+    // 割り算ループ
+    while (deg(f) >= deg(g)) {
+        c = vLTdiv_safe(f, b);  // f の先頭項 ÷ g の先頭項
+
+        // 安全性チェック
+        if (c.n < 0 || c.n >= DEG || c.a <= 0 || c.a > N) {
+            printf("Cannot reduce leading term: c.n=%d, c.a=%lld\n", c.n, c.a);
+            exit(1);
+        }
+        if(c.a<0){
+            printf("vad\n");
+            exit(1);
+        }
+        if(c.n>DEG){
+            printf("cnn\n");
+            exit(1);
+        }
+        if(c.n>DEG)
+        break;
+        tt.x[c.n] = c.a;       // 商に格納
+        h = vterml(g, c);      // c * g を作る
+        f = vsub(f, h);        // f を更新
+
+        // f が 0 になったら終了
+        if (deg(f) < 0) break;
+    }
+
+    return tt;
+}
+
+
+
+// 多項式を表示する(default)
+void printpoln(vec a)
+{
+    int i, n,flg=0;
+
+    n = deg(a);
+
+    // printf ("baka\n");
+    //  assert(("baka\n", n >= 0));
+
+    for (i = n; i > -1; i--)
+    {
+        if (a.x[i] != 0)
+        {
+            printf("%d*", a.x[i]);
+            // if (i > 0)
+            printf("x^%d", i);
+            if(i>0)
+            printf("+");
+        }
+    }
+      printf("\n");
+
+    return;
+}
+
+
 //多項式の商を取る
 vec vdiv(vec f, vec g)
 {
@@ -1686,15 +1806,19 @@ vec vdiv(vec f, vec g)
   int i = 0, j, n, k;
   vec h = {0}, e = {0}, tt = {0};
   oterm a, b = {0}, c = {0};
+  vec df={0};
+
+  df.x[0]=-1;
 
   if (vLT(f).n == 0 && vLT(g).a == 0)
   {
-    printf("baka^\n");
+    printf("baka^v\n");
     //return f;
     exit(1);
   }
   if (vLT(g).a == 0)
   {
+    printf("g==0\n");
     exit(1);
   }
   if (vLT(g).n == 0 && vLT(g).a > 1)
@@ -1716,6 +1840,28 @@ vec vdiv(vec f, vec g)
   }
 
   i = 0;
+  while (deg(f) >= deg(g))
+{
+    c = vLTdiv_safe(f, b);
+    printf("c.n=%d c.a=%lld deg(f)=%d\n", c.n, c.a, deg(f));
+
+    if (c.a <= 0 || c.a > N) {
+        printf("cannot reduce leading term, breaking\n");
+        //continue;
+        break;
+    }
+
+    assert(c.n < DEG);
+    
+    tt.x[c.n] = c.a;
+
+    h = vterml(g, c);
+    f = vsub(f, h);
+    printpol(f);
+
+    printf("after vsub: deg(f)=%d\n", deg(f));
+}
+/*
   while (vLT(f).n > 0 && vLT(g).n > 0)
   {
     c = vLTdiv(f, b);
@@ -1735,9 +1881,175 @@ vec vdiv(vec f, vec g)
     if (c.n == 0)
       break;
   }
+*/
 
-  // tt は逆順に入ってるので入れ替える
+// tt は逆順に入ってるので入れ替える
   return tt;
+}
+
+
+
+long long gcd(long long a, long long b)
+{
+    long long aa=a, bb=b;
+    while (b != 0) {
+         long long r = a % b;
+        a = b;
+        b = r;
+        printf("|b=%lld %lld\n",b,a);
+    }
+    return a;
+}
+
+
+// f / g safe (商)
+vec vdiv_safe(vec f, vec g); // 既存利用
+
+// f * g を safe で引く
+vec vsubmul(vec f, vec g, vec q) {
+    return vsub(f, vmul(q, g));
+}
+
+// Z/NZ 上で単元までの多項式逆元
+vec vinv_unit_safe(vec a, vec m)
+{
+    vec r0 = m;
+    vec r1 = a;
+    vec s0 = {0}, s1 = {0};
+    s1.x[0] = 1; // s1 = 1
+
+    vec q, r2, s2;
+
+    while (deg(r1) > 0)
+    {
+        q  = vdiv_safe(r0, r1);          // 商
+        r2 = vsubmul(r0, r1, q);         // 余り = r0 - q*r1
+
+        s2 = vsub(s0, vmul(q, s1));      // s2 = s0 - q*s1
+
+        r0 = r1;
+        r1 = r2;
+        s0 = s1;
+        s1 = s2;
+    }
+
+    // r1 が定数なら単元まで成功
+    if (deg(r1) == 0 && gcd(r1.x[0], N) == 1)
+    {
+        return s1; // a*s1 ≡ c (mod m), c は単元
+    }
+
+    printf("vinv_unit_safe: no inverse\n");
+    return (vec){0};
+}
+
+
+typedef struct {
+    vec quotient;
+    vec remainder;
+} divmod_result;
+
+vec vdivmod(vec f, vec g)
+{
+    divmod_result res = {0};
+    vec h = {0};
+    oterm lf, lg, c;
+
+    if(deg(g) == 0) { res.remainder = f; return res.remainder; }
+
+    while(deg(f) >= deg(g))
+    {
+        lf = vLT(f);
+        lg = vLT(g);
+
+        // 先頭項の係数割り
+        long long d = gcd(lg.a, N);
+        if(lf.a % d != 0) break;
+
+        long long a1 = lg.a / d;
+        long long b1 = lf.a / d;
+        long long N1 = N / d;
+        long long inv_a1 = inv(a1, N1);
+        if(inv_a1 <= 0) break;
+
+        c.a = (inv_a1 * b1) % N1;
+        c.n = lf.n - lg.n;
+
+        // h = g * (c.a * x^c.n)
+        h = vterml(g, c);
+
+        // f を更新
+        f = vsub(f, h);
+
+        //if(compute_quotient)
+        {
+            res.quotient.x[c.n] = c.a;
+        }
+
+        if(deg(f) == 0) break;
+    }
+
+    res.remainder = f;
+    return res.quotient;
+}
+
+
+// f mod g （先頭項を確実に落とす安全版）
+vec vmod_strict_2(vec f, vec g)
+{
+    vec h = {0},he={0};
+    oterm lf, lg, c;
+
+    if (deg(g) == 0) return f;
+    oterm no=vLT(g);
+    while (deg(f) >= deg(g))
+    {
+        printf("& %d %d\n",deg(f),deg(g));
+        lf = vLT(f);
+        //lg = vLT(g);
+
+        // 次数差（shift）
+        if (lf.n < no.n) break;
+        c.n = lf.n - no.n;
+        if(c.n >= DEG) {
+            printf("Error: c.n = %d >= DEG = %d\n", c.n, DEG);
+            exit(1);
+        }
+
+        // 係数チェック：lg.a * x ≡ lf.a (mod N) が解けるか
+        long long d = gcd(no.a, N);
+        printf("lf.a=%lld, d==%lld\n",lf.a, d);
+        if (lf.a % d != 0)
+        {
+            // 先頭項を消せない → これ以上 reduction 不可能
+            printf("kess\n");
+            return he;
+            //exit(1);
+        }
+
+        // 割れる場合のみ係数を計算
+        long long a1 = no.a / d;
+        long long b1 = lf.a / d;
+        long long N1 = N / d;
+        printf("kokko\n");
+        long long inv_a1 = inv(a1, N1);
+        if (inv_a1 <= 0) exit(1);
+
+        c.a = (inv_a1 * b1) % N1;
+
+        // h = g * (c.a * x^c.n)
+        h = vterml(g, c);
+
+        // f = f - h
+        f = vsub(f, h);
+        if(deg(f)==0)
+        break;
+        printpoln(f);
+
+        if (deg(f) == 0) break;
+    }
+
+    return f;
 }
 
 
@@ -1760,7 +2072,9 @@ vec vinv(vec a, vec n)
     {
         //divmod_result w=vdivmod(d,a);
         vec q = vdiv(d , a);
-        r = vmod(d , a);
+        r = vmod_strict_2(d , a);
+        if(vLT(r).a==0)
+        break;
         d = a;
         a = r;
         t = vsub(x, vmul(q, s));
@@ -1774,10 +2088,59 @@ vec vinv(vec a, vec n)
     s = t;
     printf("#\n");
     vec gcd = d; // $\gcd(a, n)$
-    vec u= vmod(vadd(x , n),tt);
+    vec u= vmod_strict_2(vadd(x , n),tt);
     u=vdiv(u, d);
  
     return  u;
+}
+
+
+vec bibun(vec a){
+    vec b={0};
+
+    for(int i=1;i<=K;i++)
+    b.x[i-1]=(a.x[i]*i)%N;
+
+    return b;
+}
+
+// 多項式を素体上で評価
+int poly_eval(vec p, int deg, int x) {
+    int res = 0;
+    int power = 1; // x^0
+    for (int i = 0; i <= deg; i++) {
+        res = (res + p.x[i] * power) % N;
+        power = (power * x) % N;
+    }
+    return res;
+}
+
+
+// 素体上の逆元
+int ainv(int a, int mod) {
+    int t = 0, newt = 1;
+    int r = mod, newr = a;
+    while (newr != 0) {
+        int q = r / newr;
+        int tmp = t - q * newt;
+        t = newt; newt = tmp;
+        tmp = r - q * newr;
+        r = newr; newr = tmp;
+    }
+    if (r > 1) return -1; // 逆元なし
+    if (t < 0) t += mod;
+    return t;
+}
+
+
+// Forney公式でエラー値を計算
+int forney_error_value(ymo t, int error_pos, int deg_f) {
+    vec L_prime = bibun(t.f);              // L'(x)
+    int alpha_inv = ainv(error_pos,N);                     // α_i^{-1}, 単純化
+    int w = poly_eval(t.h, deg_f, alpha_inv);     // Ω(α_i^{-1})
+    int l_prime_val = poly_eval(L_prime, deg_f - 1, alpha_inv); // L'(α_i^{-1})
+    int l_inv = ainv(l_prime_val, N);              // 逆元
+    return (w * l_inv) % N;                       // e_i = w / l'
 }
 
 
@@ -1800,20 +2163,51 @@ int main()
     }
     //v=vmod(vadd(vmul_2(x,r1),m),x);
     v=vmod(vmul(vinv(m,I),m),I);
+    
+    /*
+    while(1){
+    x=mkpol2(16);
     //v=vmod(c, (x));
+    vec uu = vinv(x, I);
+    vec r = vsubmul(vmul(x, uu), I, (vec){0}); // r = f*u mod g
+
+    if (deg(r) == 0 && gcd(r.x[0], N) == 1){
+    printf("OK: inverse up to unit\n");
+    exit(1);
+    } else {
+    printf("FAIL\n");
+    //exit(1);
+    }
+    }
+    */
+    int a=3;
+    uint32_t inv = a;           // mod 2
+    inv = inv * (2 - a * inv)%32; // mod 4
+    inv = inv * (2 - a * inv)%32; // mod 8
+    inv = inv * (2 - a * inv)%32; // mod 16
+    inv = inv * (2 - a * inv)%32; // mod 32
+    printf("%d\n",inv);
+    //exit(1);
+    
     vec moduls={0};
     moduls.x[761]=1;
     moduls.x[1]=4590;
     moduls.x[0]=4590;
-    
+    while(1){
+    x=mkpol2(7);
+    printpoln(x);
     v=vinv(x,moduls);
     printpol(v);
     printf("\n");
     v=vmod(vmul(v,x),moduls);
     printpol(v);
     printf("\n");
-    exit(1);
-    
+    printpol(x);
+    printf("\n");
+    //if(vLT(v).a==1)
+    //exit(1);
+    break;
+    }    
     // mkg(K); // Goppa Code (EEA type)
     // van(K); // RS-Code generate
     // mkd(f, K);
@@ -1846,15 +2240,20 @@ int main()
         //for(i=0;i<T;i++)
         //r.x[K-1-i]=y.f.x[i];
         x=chen(y.f);
+        for(int i=0;i<T;i++)
+        printf("%d\n",forney_error_value(y,x.x[i],T));
+        //x=bibun(x);
         //chen(r);
-        // exit(1);
+         exit(1);
          for(i=0;i<N;i++)
          if(z1[i]>0)
-         printf("i=%d\n",i);
+         printf("i=%d %d\n",i,z1[i]);
         //exit(1);
          // mkd(1);
         MTX b = {0};
-
+        for(int i=0;i<T;i++)
+        printf("e=%d l=%d\n",trace(v2o(y.g),ainv(x.x[i],N)),i);
+        exit(1);
         //for (i = 0; i < K; i++)
         //    v.x[K - 1 - i] = x.x[i];
         //printpol((v));
