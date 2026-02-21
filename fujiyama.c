@@ -2252,47 +2252,12 @@ int main()
          // mkd(1);
         MTX b = {0};
         for(int i=0;i<T;i++)
-        printf("e=%d l=%d\n",trace(v2o(y.g),ainv(x.x[i],N)),i);
+        printf(real e=%d l=%d\n",trace(v2o(y.g),ainv(x.x[i],N)),i));
         exit(1);
-        //for (i = 0; i < K; i++)
-        //    v.x[K - 1 - i] = x.x[i];
-        //printpol((v));
-        //printf(" ==synpol\n");
         printpol((v));
         printf(" ==synpol\n");
         //exit(1);
-/*
-        for (i = 0; i < K / 2; i++)
-        {
-            for (int j = 0; j < K / 2 + 1; j++)
-            {
-                b.x[i][j] = v.x[i + j];
-                // printf("%d,",b.x[i][i+j]);
-            }
-            // printf("\n");
-        }
-        printf("\n");
-        for (i = 0; i < K / 2; i++)
-        {
-            for (int j = 0; j < K / 2 + 1; j++)
-                printf("e%d,", b.x[i][j]);
-            printf("\n");
-        }
-*/
-        //x = sol(b, 0, K / 2);
-        /*
-        for (i = 0; i < N; i++)
-        {
-            if (z1[i] > 0 && x.x[i] == 0)
-            {
-                printf("baka=%d %d %d\n", i, z1[i], x.x[i]);
-                // exit(1);
-            }
-        }
-        */
-        x=ev(x,v);
-        //exit(1);
-        int flg = 0,yo=0;
+       int flg = 0,yo=0;
         for (i = 0; i < N; i++)
         {
             if (z1[i] > 0)
