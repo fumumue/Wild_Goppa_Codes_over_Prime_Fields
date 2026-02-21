@@ -2240,26 +2240,25 @@ int main()
         //for(i=0;i<T;i++)
         //r.x[K-1-i]=y.f.x[i];
         x=chen(y.f);
+        vec d={0};
         for(int i=0;i<T;i++)
-        printf("%d\n",forney_error_value(y,x.x[i],T));
+         d.x[i]=forney_error_value(y,x.x[i],T);
         //x=bibun(x);
         //chen(r);
-         exit(1);
+         //exit(1);
          for(i=0;i<N;i++)
          if(z1[i]>0)
          printf("i=%d %d\n",i,z1[i]);
         //exit(1);
          // mkd(1);
         MTX b = {0};
-        for(int i=0;i<T;i++)
-        printf("e=%d l=%d\n",trace(v2o(y.g),ainv(x.x[i],N)),i);
-        exit(1);
+        //exit(1);
        int flg = 0,yo=0;
         for (i = 0; i < N; i++)
         {
             if (z1[i] > 0)
             {
-                printf("(correcting ,original) = (%d, %d) %d\n", x.x[yo], z1[i], i);
+                printf("(correcting ,original) = (%d, %d) %d\n", d.x[yo], z1[i], i);
                 yo++;
                 flg++;
             }
