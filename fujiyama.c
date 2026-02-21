@@ -2252,11 +2252,8 @@ int main()
          // mkd(1);
         MTX b = {0};
         for(int i=0;i<T;i++)
-        printf(real e=%d l=%d\n",trace(v2o(y.g),ainv(x.x[i],N)),i));
+        printf("e=%d l=%d\n",trace(v2o(y.g),ainv(x.x[i],N)),i);
         exit(1);
-        printpol((v));
-        printf(" ==synpol\n");
-        //exit(1);
        int flg = 0,yo=0;
         for (i = 0; i < N; i++)
         {
