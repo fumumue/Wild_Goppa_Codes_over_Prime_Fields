@@ -2136,7 +2136,7 @@ int ainv(int a, int mod) {
 // Forney公式でエラー値を計算
 int forney_error_value(ymo t, int error_pos, int deg_f) {
     vec L_prime = bibun(t.f);              // L'(x)
-    int alpha_inv = ainv(error_pos,N);                     // α_i^{-1}, 単純化
+    int alpha_inv = error_pos; //= ainv(error_pos,N);                     // α_i^{-1}, 単純化
     int w = poly_eval(t.h, deg_f, alpha_inv);     // Ω(α_i^{-1})
     int l_prime_val = poly_eval(L_prime, deg_f - 1, alpha_inv); // L'(α_i^{-1})
     int l_inv = ainv(l_prime_val, N);              // 逆元
@@ -2153,7 +2153,9 @@ int main()
 
     vec v = {0}, x = mkpol2(15),r1=mkpol2(12),r2=mkpol2(12),m={1,2,3,4,5,6,7,8},I={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
     OP f = {0},y={0};
-    printf("%d %d %d\n", 3, oinv(3, N), 3 * oinv(3, N) % N);
+    printf("%d %d %d\n", oinv(0,N), oinv(3, N), 3 * oinv(3, N) % N);
+    //exit(1);
+
     int le = 1;
     for (i = 1; i < 65; i++)
     {
@@ -2223,13 +2225,21 @@ int main()
         // for(i=0;i<T;i++)
         // z1[i]=2;
         memset(z1, 0, sizeof(z1));
-         mkerr(z1, T);    // generate error vector
-        // for (int i = 0; i < T; i++)
-        //    z1[i] = i+1;
-        //z1[1] = 1;
-        //z1[2] = 2;
-        //z1[3] = 3;
-        //z1[4] = 1;
+         //mkerr(z1, T);    // generate error vector
+         for (int i = 0; i < T; i++)
+            z1[i] = rand()%N;
+        
+        /*    
+        z1[1] = 2;
+        z1[2] = 2;
+        z1[3] = 2;
+        z1[4] = 2;
+        
+        z1[5] = 1;
+        z1[6] = 2;
+        z1[7] = 3;
+        z1[8] = 1;
+        */
         f = synd(z1, K); // calc syndrome
         x = o2v(f);      // transorm to vec
         vec r={0};
@@ -2243,7 +2253,9 @@ int main()
         vec d={0};
         for(int i=0;i<T;i++)
          d.x[i]=forney_error_value(y,x.x[i],T);
-        //x=bibun(x);
+        //exit(1);
+         //x=bibun(x);
+        //d=ev(x,v);
         //chen(r);
          //exit(1);
          for(i=0;i<N;i++)
