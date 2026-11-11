@@ -1349,21 +1349,24 @@ aa:
 
 void mkerr(unsigned short *z1, int num)
 {
-    int j, l;
+    int j = 0;
 
-    j = 0;
+    if (z1 == NULL || num < 0 || num > N)
+    {
+        fprintf(stderr, "mkerr: invalid error weight %d (valid range: 0..%d)\\n", num, N);
+        return;
+    }
 
-    memset(z1, 0, sizeof(2 * N));
+    /* Clear all N symbols; sizeof(2 * N) only clears sizeof(int) bytes. */
+    memset(z1, 0, sizeof(*z1) * N);
 
+    /* All N support positions, including coordinate zero, are valid. */
     while (j < num)
     {
-        l = rand() % (N - 1);
-        // printf ("l=%d\n", l);
-        if (0 == z1[l] && l > 0)
+        int pos = rand() % N;
+        if (z1[pos] == 0)
         {
-            z1[l] = 2; //rand()%N;
-            // printf("l=%d\n", l);
-            if(z1[l]>0)
+            z1[pos] = 2;
             j++;
         }
     }
@@ -1403,26 +1406,28 @@ OP synd(unsigned short zz[], int kk)
 vec chen(vec f)
 {
     vec e = {0};
-    int i, n, x = 0, count = 0;
+    int i, n, x, count = 0;
     unsigned short z;
 
-    n = deg((f));
+    /* UINT16_MAX marks unused entries; coordinate zero is a valid root. */
+    for (i = 0; i < DEG; i++)
+        e.x[i] = UINT16_MAX;
+
+    n = deg(f);
     for (x = 0; x < N; x++)
     {
         z = 0;
-        for (i = 0; i < n + 1; i++)
+        for (i = 0; i <= n; i++)
         {
             if (f.x[i] > 0)
-                z += (mltn(i, x) * f.x[i]) % N;
+                z = (unsigned short)((z + (mltn(i, x) * f.x[i]) % N) % N);
         }
-        if (z % N == 0)
+        if (z == 0 && count < DEG)
         {
-            e.x[count] = x;
-            count++;
-            printf("change %d\n", (x));
+            e.x[count++] = (unsigned short)x;
+            printf("root %d\\n", x);
         }
     }
-
     return e;
 }
 
@@ -2117,169 +2122,130 @@ int poly_eval(vec p, int deg, int x) {
 
 
 // 素体上の逆元
-int ainv(int a, int mod) {
-    int t = 0, newt = 1;
-    int r = mod, newr = a;
-    while (newr != 0) {
-        int q = r / newr;
-        int tmp = t - q * newt;
-        t = newt; newt = tmp;
+int ainv(int a, int mod)
+{
+    long long t = 0, newt = 1;
+    long long r, newr;
+
+    if (mod <= 1)
+        return -1;
+
+    a %= mod;
+    if (a < 0)
+        a += mod;
+
+    r = mod;
+    newr = a;
+    while (newr != 0)
+    {
+        long long q = r / newr;
+        long long tmp = t - q * newt;
+        t = newt;
+        newt = tmp;
         tmp = r - q * newr;
-        r = newr; newr = tmp;
+        r = newr;
+        newr = tmp;
     }
-    if (r > 1) return -1; // 逆元なし
-    if (t < 0) t += mod;
-    return t;
+
+    if (r != 1)
+        return -1;
+
+    t %= mod;
+    if (t < 0)
+        t += mod;
+    return (int)t;
 }
 
 
 // Forney公式でエラー値を計算
-int forney_error_value(ymo t, int error_pos, int deg_f) {
-    vec L_prime = bibun(t.f);              // L'(x)
-    int alpha_inv = error_pos; //= ainv(error_pos,N);                     // α_i^{-1}, 単純化
-    int w = poly_eval(t.h, deg_f, alpha_inv);     // Ω(α_i^{-1})
-    int l_prime_val = poly_eval(L_prime, deg_f - 1, alpha_inv); // L'(α_i^{-1})
-    int l_inv = ainv(l_prime_val, N);              // 逆元
-    return (w * l_inv) % N;                       // e_i = w / l'
+int forney_error_value(ymo t, int error_pos, int deg_f)
+{
+    vec L_prime;
+    int w, l_prime_val, l_inv;
+
+    if (error_pos < 0 || error_pos >= N || deg_f < 1 || deg_f >= DEG)
+        return -1;
+
+    L_prime = bibun(t.f);
+    /* chen() returns the support coordinate; evaluate at that coordinate. */
+    w = poly_eval(t.h, deg_f, error_pos);
+    l_prime_val = poly_eval(L_prime, deg_f - 1, error_pos);
+    l_inv = ainv(l_prime_val, N);
+    if (l_inv < 0)
+        return -1;
+
+    return (int)(((long long)w * l_inv) % N);
 }
 
 
-int main()
+int main(void)
 {
-    int i, u = 0;
-    unsigned short s[K + 1] = {0}, z1[N] = {0};
-    
-    srand(clock());
+    int i, root_count = 0, ok = 1;
+    unsigned short error[N] = {0};
+    int decoded[N] = {0};
+    OP goppa_poly = {0};
+    vec syndrome, reversed_syndrome = {0}, roots;
+    ymo decoder;
 
-    vec v = {0}, x = mkpol2(15),r1=mkpol2(12),r2=mkpol2(12),m={1,2,3,4,5,6,7,8},I={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
-    OP f = {0},y={0};
-    printf("%d %d %d\n", oinv(0,N), oinv(3, N), 3 * oinv(3, N) % N);
-    //exit(1);
+    srand((unsigned int)time(NULL));
 
-    int le = 1;
-    for (i = 1; i < 65; i++)
+    printf("Wild Goppa code over F_%d: N=%d, K=%d, designed t=%d\\n",
+           N, N, K, T);
+
+    /* Construct the parity-check matrix from a generated Goppa polynomial. */
+    (void)mkd(goppa_poly, K, 0, K);
+
+    /* Generate exactly T distinct nonzero error symbols. */
+    mkerr(error, T);
+    printf("Original error vector (position:value):\\n");
+    for (i = 0; i < N; i++)
+        if (error[i] != 0)
+            printf("  %d:%u\\n", i, error[i]);
+
+    syndrome = o2v(synd(error, K));
+    for (i = 0; i < K; i++)
+        reversed_syndrome.x[K - 1 - i] = syndrome.x[i];
+
+    decoder = bm_itr(reversed_syndrome.x);
+    roots = chen(decoder.f);
+
+    for (i = 0; i < DEG && roots.x[i] != UINT16_MAX; i++)
     {
-        for (int j = 0; j < 13; j++)
-            le = (13 * le) % 128;
-        printf("le=%d %d\n", le, i);
-    }
-    //v=vmod(vadd(vmul_2(x,r1),m),x);
-    v=vmod(vmul(vinv(m,I),m),I);
-    
-    /*
-    while(1){
-    x=mkpol2(16);
-    //v=vmod(c, (x));
-    vec uu = vinv(x, I);
-    vec r = vsubmul(vmul(x, uu), I, (vec){0}); // r = f*u mod g
-
-    if (deg(r) == 0 && gcd(r.x[0], N) == 1){
-    printf("OK: inverse up to unit\n");
-    exit(1);
-    } else {
-    printf("FAIL\n");
-    //exit(1);
-    }
-    }
-    */
-    int a=3;
-    uint32_t inv = a;           // mod 2
-    inv = inv * (2 - a * inv)%32; // mod 4
-    inv = inv * (2 - a * inv)%32; // mod 8
-    inv = inv * (2 - a * inv)%32; // mod 16
-    inv = inv * (2 - a * inv)%32; // mod 32
-    printf("%d\n",inv);
-    //exit(1);
-    
-    vec moduls={0};
-    moduls.x[761]=1;
-    moduls.x[1]=4590;
-    moduls.x[0]=4590;
-    while(1){
-    x=mkpol2(7);
-    printpoln(x);
-    v=vinv(x,moduls);
-    printpol(v);
-    printf("\n");
-    v=vmod(vmul(v,x),moduls);
-    printpol(v);
-    printf("\n");
-    printpol(x);
-    printf("\n");
-    //if(vLT(v).a==1)
-    //exit(1);
-    break;
-    }    
-    // mkg(K); // Goppa Code (EEA type)
-    // van(K); // RS-Code generate
-    // mkd(f, K);
-    // vv(K);           // Goppa Code's Parity Check (Berlekamp type)
-
-    // resl(v,x);
-    // exit(1);
-
-    mkd(f, K, 0, K);
-
-    while (1)
-    {
-        // for(i=0;i<T;i++)
-        // z1[i]=2;
-        memset(z1, 0, sizeof(z1));
-         //mkerr(z1, T);    // generate error vector
-         for (int i = 0; i < T; i++)
-            z1[i] = rand()%N;
-        
-        /*    
-        z1[1] = 2;
-        z1[2] = 2;
-        z1[3] = 2;
-        z1[4] = 2;
-        
-        z1[5] = 1;
-        z1[6] = 2;
-        z1[7] = 3;
-        z1[8] = 1;
-        */
-        f = synd(z1, K); // calc syndrome
-        x = o2v(f);      // transorm to vec
-        vec r={0};
-        //vec r = bms(x.x);    // Berlekamp-Massey Algorithm
-        for(i=0;i<K;i++)
-        v.x[K-i-1]=x.x[i];
-        ymo y=bm_itr(v.x);
-        //for(i=0;i<T;i++)
-        //r.x[K-1-i]=y.f.x[i];
-        x=chen(y.f);
-        vec d={0};
-        for(int i=0;i<T;i++)
-         d.x[i]=forney_error_value(y,x.x[i],T);
-        //exit(1);
-         //x=bibun(x);
-        //d=ev(x,v);
-        //chen(r);
-         //exit(1);
-         for(i=0;i<N;i++)
-         if(z1[i]>0)
-         printf("i=%d %d\n",i,z1[i]);
-        //exit(1);
-         // mkd(1);
-        MTX b = {0};
-        //exit(1);
-       int flg = 0,yo=0;
-        for (i = 0; i < N; i++)
+        int value;
+        root_count++;
+        value = forney_error_value(decoder, roots.x[i], T);
+        if (value < 0)
         {
-            if (z1[i] > 0)
-            {
-                printf("(correcting ,original) = (%d, %d) %d\n", d.x[yo], z1[i], i);
-                yo++;
-                flg++;
-            }
-        }
-
-        if (flg == T)
+            fprintf(stderr, "Forney evaluation failed at position %u.\\n", roots.x[i]);
+            ok = 0;
             break;
-
-        break;
+        }
+        decoded[roots.x[i]] = value;
+        printf("Decoded error: position=%u value=%d\\n", roots.x[i], value);
     }
-    return 0;
+
+    if (root_count != T)
+    {
+        fprintf(stderr, "Expected %d error locations, found %d.\\n", T, root_count);
+        ok = 0;
+    }
+
+    for (i = 0; i < N; i++)
+    {
+        if (decoded[i] != error[i])
+        {
+            fprintf(stderr, "Mismatch at position %d: expected %u, decoded %d\\n",
+                    i, error[i], decoded[i]);
+            ok = 0;
+        }
+    }
+
+    if (ok)
+    {
+        puts("PASS: decoded error vector matches the original.");
+        return 0;
+    }
+
+    puts("FAIL: decoded error vector does not match the original.");
+    return 1;
 }
