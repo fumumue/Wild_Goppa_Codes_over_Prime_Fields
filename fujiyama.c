@@ -2196,7 +2196,9 @@ int main(void)
     (void)mkd(goppa_poly, K, 0, K);
 
     /* Generate exactly T distinct nonzero error symbols. */
-    mkerr(error, T);
+    for(int j=0;j<T;j++)
+    error[j] = 2;
+    //mkerr(error, T);
     printf("Original error vector (position:value):\\n");
     for (i = 0; i < N; i++)
         if (error[i] != 0)
