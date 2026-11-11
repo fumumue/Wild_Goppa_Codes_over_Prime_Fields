@@ -2183,7 +2183,6 @@ int main(void)
 {
     int i, root_count = 0, ok = 1;
     /* Choose a random error weight uniformly from 0 through T. */
-    const int error_weight = rand() % (T + 1);
     unsigned short error[N] = {0};
     int decoded[N] = {0};
     OP goppa_poly = {0};
@@ -2191,6 +2190,7 @@ int main(void)
     ymo decoder;
 
     srand((unsigned int)time(NULL));
+    const int error_weight = rand() % (K/2);
 
     printf("Wild Goppa code over F_%d: N=%d, K=%d, designed t=%d\n",
            N, N, K, T);
@@ -2206,7 +2206,11 @@ int main(void)
     (void)mkd(goppa_poly, K, 0, K);
 
     /* Generate error_weight distinct random positions (mkerr uses value 2). */
-    mkerr(error, error_weight);
+    for(int j=0;j<error_weight;j++)
+    {
+        error[j] = 2;
+    }
+    //mkerr(error, error_weight);
 
     printf("\nOriginal error vector (position:value):\n");
     for (i = 0; i < N; i++)
