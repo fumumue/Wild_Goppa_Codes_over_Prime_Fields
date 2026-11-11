@@ -2182,8 +2182,8 @@ int forney_error_value(ymo t, int error_pos, int deg_f)
 int main(void)
 {
     int i, root_count = 0, ok = 1;
-    /* Set this to any value from 0 through T to test that error weight. */
-    const int error_weight = T;
+    /* Choose a random error weight uniformly from 0 through T. */
+    const int error_weight = rand() % (T + 1);
     unsigned short error[N] = {0};
     int decoded[N] = {0};
     OP goppa_poly = {0};
@@ -2205,9 +2205,8 @@ int main(void)
     /* Construct the parity-check matrix from a generated Goppa polynomial. */
     (void)mkd(goppa_poly, K, 0, K);
 
-    /* Generate exactly error_weight distinct nonzero error symbols. */
-    for (int j = 0; j < error_weight; j++)
-        error[j] = 2;
+    /* Generate error_weight distinct random positions (mkerr uses value 2). */
+    mkerr(error, error_weight);
 
     printf("\nOriginal error vector (position:value):\n");
     for (i = 0; i < N; i++)
