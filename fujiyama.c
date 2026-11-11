@@ -2189,20 +2189,20 @@ int main(void)
 
     srand((unsigned int)time(NULL));
 
-    printf("Wild Goppa code over F_%d: N=%d, K=%d, designed t=%d\\n",
+    printf("Wild Goppa code over F_%d: N=%d, K=%d, designed t=%d\n",
            N, N, K, T);
 
     /* Construct the parity-check matrix from a generated Goppa polynomial. */
     (void)mkd(goppa_poly, K, 0, K);
 
-    /* Generate exactly T distinct nonzero error symbols. */
-    for(int j=0;j<T;j++)
-    error[j] = 2;
-    //mkerr(error, T);
-    printf("Original error vector (position:value):\\n");
+        /* Generate exactly T distinct nonzero error symbols. */
+    for (int j = 0; j < T; j++)
+        error[j] = 2;
+
+    printf("\nOriginal error vector (position:value):\n");
     for (i = 0; i < N; i++)
         if (error[i] != 0)
-            printf("  %d:%u\\n", i, error[i]);
+            printf("  %d:%u\n", i, error[i]);
 
     syndrome = o2v(synd(error, K));
     for (i = 0; i < K; i++)
@@ -2218,25 +2218,40 @@ int main(void)
         value = forney_error_value(decoder, roots.x[i], T);
         if (value < 0)
         {
-            fprintf(stderr, "Forney evaluation failed at position %u.\\n", roots.x[i]);
+            fprintf(stderr, "Forney evaluation failed at position %u.\n", roots.x[i]);
             ok = 0;
             break;
         }
         decoded[roots.x[i]] = value;
-        printf("Decoded error: position=%u value=%d\\n", roots.x[i], value);
     }
 
     if (root_count != T)
     {
-        fprintf(stderr, "Expected %d error locations, found %d.\\n", T, root_count);
+        fprintf(stderr, "Expected %d error locations, found %d.\n", T, root_count);
         ok = 0;
     }
 
+    /* Show the recovered error positions and values. */
+    printf("\nDecoded error vector (position:value):\n");
+    for (i = 0; i < N; i++)
+        if (decoded[i] != 0)
+            printf("  %d:%d\n", i, decoded[i]);
+
+    /* Compare the union of nonzero positions, including missing/extra errors. */
+    printf("\nError comparison:\n");
+    printf(" position | original | decoded\n");
+    printf("----------+----------+--------\n");
     for (i = 0; i < N; i++)
     {
+        if (error[i] != 0 || decoded[i] != 0)
+        {
+            printf(" %8d | %8u | %7d%s\n",
+                   i, error[i], decoded[i],
+                   error[i] == decoded[i] ? "" : "  <-- MISMATCH");
+        }
         if (decoded[i] != error[i])
         {
-            fprintf(stderr, "Mismatch at position %d: expected %u, decoded %d\\n",
+            fprintf(stderr, "Mismatch at position %d: expected %u, decoded %d\n",
                     i, error[i], decoded[i]);
             ok = 0;
         }
@@ -2244,10 +2259,10 @@ int main(void)
 
     if (ok)
     {
-        puts("PASS: decoded error vector matches the original.");
+        puts("\nPASS: decoded error vector matches the original.");
         return 0;
     }
 
-    puts("FAIL: decoded error vector does not match the original.");
+    puts("\nFAIL: decoded error vector does not match the original.");
     return 1;
 }
