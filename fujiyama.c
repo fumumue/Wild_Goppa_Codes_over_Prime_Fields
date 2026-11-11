@@ -1561,10 +1561,11 @@ ymo bm_itr(unsigned short s[])
     t.f = U2[0][0][0];
     t.g = U2[0][1][0];
     t.h = U2[0][0][1];
-    if (deg(t.f) == T)
+    /* The locator degree is the actual error weight, which may be <= T. */
+    if (deg(t.f) <= T)
     {
         printsage((t.f));
-        printf(" ==chen00\n");
+        printf(" ==chen00 (locator degree=%d, maximum=%d)\n", deg(t.f), T);
         return t;
     }
     else
@@ -2181,6 +2182,8 @@ int forney_error_value(ymo t, int error_pos, int deg_f)
 int main(void)
 {
     int i, root_count = 0, ok = 1;
+    /* Set this to any value from 0 through T to test that error weight. */
+    const int error_weight = T;
     unsigned short error[N] = {0};
     int decoded[N] = {0};
     OP goppa_poly = {0};
@@ -2192,11 +2195,18 @@ int main(void)
     printf("Wild Goppa code over F_%d: N=%d, K=%d, designed t=%d\n",
            N, N, K, T);
 
+    if (error_weight < 0 || error_weight > T)
+    {
+        fprintf(stderr, "Invalid error weight %d (must be between 0 and %d).\n",
+                error_weight, T);
+        return 1;
+    }
+
     /* Construct the parity-check matrix from a generated Goppa polynomial. */
     (void)mkd(goppa_poly, K, 0, K);
 
-        /* Generate exactly T distinct nonzero error symbols. */
-    for (int j = 0; j < T; j++)
+    /* Generate exactly error_weight distinct nonzero error symbols. */
+    for (int j = 0; j < error_weight; j++)
         error[j] = 2;
 
     printf("\nOriginal error vector (position:value):\n");
@@ -2211,11 +2221,14 @@ int main(void)
     decoder = bm_itr(reversed_syndrome.x);
     roots = chen(decoder.f);
 
+    /* Use the recovered locator degree, not the maximum designed weight T. */
+    int locator_degree = deg(decoder.f);
+
     for (i = 0; i < DEG && roots.x[i] != UINT16_MAX; i++)
     {
         int value;
         root_count++;
-        value = forney_error_value(decoder, roots.x[i], T);
+        value = forney_error_value(decoder, roots.x[i], locator_degree);
         if (value < 0)
         {
             fprintf(stderr, "Forney evaluation failed at position %u.\n", roots.x[i]);
@@ -2225,9 +2238,9 @@ int main(void)
         decoded[roots.x[i]] = value;
     }
 
-    if (root_count != T)
+    if (root_count != error_weight)
     {
-        fprintf(stderr, "Expected %d error locations, found %d.\n", T, root_count);
+        fprintf(stderr, "Expected %d error locations, found %d.\n", error_weight, root_count);
         ok = 0;
     }
 
