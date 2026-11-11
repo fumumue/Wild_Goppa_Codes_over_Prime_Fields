@@ -1,24 +1,23 @@
-# Wild Goppa Codes over Prime Fields
+# 素体上のワイルドGoppa符号
 
-Experimental C implementation of a Goppa-code construction over the prime field
-\\(\\mathbb{F}_N\\), with syndrome computation and an attempted
-Berlekamp-style locator-polynomial decoder.
+素体 \\(\\mathbb{F}_N\\) 上での Goppa 符号の構成を実験するための C 言語プログラムです。
+シンドローム計算と、Berlekamp 型の誤り位置多項式による復号処理を含みます。
 
-## Parameters
+## パラメータ
 
-The current defaults are defined in `global-p.h`:
+現在の既定値は `global-p.h` で指定されています。
 
-- `N`: prime-field modulus and code length
-- `K`: polynomial/constraint parameter
-- `T`: configured error weight (`K / 2`)
-- `E`: auxiliary parameter used by the implementation
+- `N`: 素体の法（素数）および符号長
+- `K`: 多項式・制約に関するパラメータ
+- `T`: 設定される誤り重み（`K / 2`）
+- `E`: プログラム内で使用する補助パラメータ
 
-These values are experimental. In particular, changing `N` requires it to be
-prime for the modular inverses used throughout the code to be well-defined.
+これらは実験用の設定です。特に、プログラム内の法演算における逆元計算を成立させるには、
+`N` を素数にする必要があります。
 
-## Build and run
+## コンパイルと実行
 
-On Linux with GCC and the standard C development toolchain:
+Linux と GCC などの標準的な C 開発環境を想定しています。
 
 ```sh
 gcc -O3 -Wall -Wextra -o decoder fujiyama.c -lm
@@ -26,30 +25,30 @@ ulimit -s unlimited
 ./decoder
 ```
 
-The program uses large statically sized arrays and x86 intrinsics are included
-in the source. A compatible x86 GCC environment may be required.
+ソースコードでは大きな静的配列を使用しています。また、x86 向けの組み込み命令も含まれているため、
+実行環境によっては対応する x86 用 GCC が必要です。
 
-## Current implementation notes
+## 主なファイルと実装
 
-- `fujiyama.c` contains the polynomial and finite-field arithmetic, parity-check
-  matrix construction, syndrome calculation, locator-polynomial routines, and
-  the demonstration `main`.
-- `global-p.h` holds the compile-time parameters and shared matrices.
-- `struct.h` defines the polynomial and matrix data structures.
-- `chash-p.c` is included by `fujiyama.c` and contains supporting routines.
+- `fujiyama.c`: 多項式・有限体演算、検査行列の構成、シンドローム計算、
+  誤り位置多項式に関する処理、および実行用の `main` 関数を含みます。
+- `global-p.h`: コンパイル時パラメータと共有行列を定義します。
+- `struct.h`: 多項式や行列のデータ構造を定義します。
+- `chash-p.c`: `fujiyama.c` からインクルードされる補助処理を含みます。
 
-The demonstration now generates a weight-`T` error vector, runs the decoder,
-and compares the recovered vector with the original. A successful comparison
-prints `PASS`; a mismatch or failed Forney evaluation returns a failure status.
+デモプログラムは重み `T` の誤りベクトルを生成し、復号処理を実行した後、
+復元されたベクトルと元のベクトルを比較します。一致すれば `PASS` を表示します。
+不一致や Forney 公式の評価に失敗した場合は、失敗として終了します。
 
-**Important:** this is research/experimental code, not a validated cryptographic
-implementation. The decoding path and its algebraic conventions still require
-independent mathematical review and reproducible testing across parameter sets.
-Do not use it to protect data.
+## 注意事項
 
-## Why prime-field Goppa codes?
+**このコードは研究・実験段階のものであり、検証済みの暗号実装ではありません。**
 
-- The prime modulus gives more flexibility in choosing the code length than
-  restricting the length to powers of two.
-- Arithmetic is expressed with integer operations modulo a prime, which can
-  make small prototypes easier to inspect and experiment with.
+復号処理およびそこで使用している代数的な規約については、独立した数学的検証と、
+複数のパラメータ設定での再現可能なテストが必要です。機密情報の保護には使用しないでください。
+
+## 素体上の Goppa 符号を扱う動機
+
+- 法となる素数を選ぶことで、符号長を 2 のべき乗に限定せず、より柔軟に設定できます。
+- 素数を法とする整数演算で記述できるため、小規模な実験では拡大体の演算よりも
+  実装や計算過程を確認しやすい場合があります。
